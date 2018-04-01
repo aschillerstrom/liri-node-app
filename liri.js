@@ -24,6 +24,11 @@ switch(liriArgument) {
 };
 // ---------------------------------------------------------------------------------------------------------------
 // Functions
+
+var spotify = new Spotify(keys.spotify);
+var client = new Twitter(keys.twitter);
+
+
 // Movie function, uses the Request module to call the OMDB api
 function movieThis(){
     var movie = process.argv[3];
