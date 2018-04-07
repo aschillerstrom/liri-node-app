@@ -1,143 +1,138 @@
-require("dotenv").config();
-
-// Node module imports needed to run the functions
-var fs = require("fs"); //reads and writes files
-var request = require("request");
-var keys = require("./keys.js");
-var twitter = require("twitter");
-var spotify = require ("spotify");
-var liriArgument = process.argv[2];
-// ---------------------------------------------------------------------------------------------------------------
-// Possible commands for this liri app
-switch(liriArgument) {
-    case "my-tweets": myTweets(); break;
-    case "spotify-this-song": spotifyThisSong(); break;
-    case "movie-this": movieThis(); break;
-    case "do-what-it-says": doWhatItSays(); break;
-    // Instructions displayed in terminal to the user
-    default: console.log("\r\n" +"Try typing one of the following commands after 'node liri.js' : " +"\r\n"+
-        "1. my-tweets 'any twitter name' " +"\r\n"+
-        "2. spotify-this-song 'any song name' "+"\r\n"+
-        "3. movie-this 'any movie name' "+"\r\n"+
-        "4. do-what-it-says."+"\r\n"+
-        "Be sure to put the movie or song name in quotation marks if it's more than one word.");
-};
-// ---------------------------------------------------------------------------------------------------------------
-// Functions
-
-var spotify = new Spotify(keys.spotify);
-var client = new Twitter(keys.twitter);
+var action = process.argv[2];
+var value = process.argv[3]; 
 
 
-// Movie function, uses the Request module to call the OMDB api
-function movieThis(){
-    var movie = process.argv[3];
-    if(!movie){
-        movie = "mr nobody";
-    }
-    movieChoice = movie
-    request("http://www.omdbapi.com/?t=" + movieChoice + "&y=&plot=short&r=json&tomatoes=true", function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            var movieObject = JSON.parse(body);
-            //console.log(movieObject); // Show the text in the terminal
-            var movieResults =
-            "------------------------------ begin ------------------------------" + "\r\n"
-            "Title: " + movieObject.Title+"\r\n"+
-            "Year: " + movieObject.Year+"\r\n"+
-            "Imdb Rating: " + movieObject.imdbRating+"\r\n"+
-            "Country: " + movieObject.Country+"\r\n"+
-            "Language: " + movieObject.Language+"\r\n"+
-            "Plot: " + movieObject.Plot+"\r\n"+
-            "Actors: " + movieObject.Actors+"\r\n"+
-            "Rotten Tomatoes Rating: " + movieObject.tomatoRating+"\r\n"+
-            "Rotten Tomatoes URL: " + movieObject.tomatoURL + "\r\n" + 
-            "------------------------------ end ------------------------------" + "\r\n";
-            console.log(movieResults);
-            log(movieResults); // calling log function
-        } else {
-            console.log("Error :"+ error);
-            return;
+
+// says which api to use
+switch (action) {
+    case 'my-tweets':
+        twitter();
+        break;
+
+    case 'movie-this':
+        imdb();
+        break;
+
+    case 'do-what-it-says':
+        dwis();
+        break;
+}
+
+
+
+//TWITTER________________________________________________________
+
+function twitter() {
+    var twitter = require('Twitter');
+    var fs = require('fs');
+    var dataKeys = require('./keys.js');
+    //console.log(twitterKey) 
+
+    //twitter
+
+    var client = new twitter (dataKeys.twitterKeys);
+
+    var tweetslength;
+    var params = {
+        screen_name: 'Amy schill',
+        count: 20   
         }
-    });
-};
 
-// Tweet function, uses the Twitter module to call the Twitter api
-function myTweets() {
-    var client = new twitter({
-        consumer_key: keys.twitterKeys.consumer_key,
-        consumer_secret: keys.twitterKeys.consumer_secret,
-        access_token_key: keys.twitterKeys.access_token_key,
-        access_token_secret: keys.twitterKeys.access_token_secret, 
-    });
-    var twitterUsername = process.argv[3];
-    if(!twitterUsername){
-        twitterUsername = "mtnlnghrn";
-    }
-    params = {screen_name: twitterUsername};
-    client.get("statuses/user_timeline/", params, function(error, data, response){
+    client.get('statuses/user_timeline', params, function(error, tweets, response) {
         if (!error) {
-            for(var i = 0; i < data.length; i++) {
-                //console.log(response); // Show the full response in the terminal
-                var twitterResults = 
-                "@" + data[i].user.screen_name + ": " + 
-                data[i].text + "\r\n" + 
-                data[i].created_at + "\r\n" + 
-                "------------------------------ " + i + " ------------------------------" + "\r\n";
-                console.log(twitterResults);
-                log(twitterResults); // calling log function
+
+            console.log("=============================================");
+            console.log("Here are the most recent tweets");
+
+            var data=[];
+
+            for (var i = 0; i < tweets.length; i++) {
+                data.push({
+                    'Tweeted on: ' : tweets[i].created_at,
+                    'Tweet:  ' : tweets[i].text
+                });
+
+                console.log("_____________________________________________");
+                console.log(data);
+
             }
-        }  else {
-            console.log("Error :"+ error);
-            return;
         }
     });
 };
 
-// Spotify function, uses the Spotify module to call the Spotify api
-function spotifyThisSong(songName) {
-    var songName = process.argv[3];
-    if(!songName){
-        songName = "the sign";
-    }
-    params = songName;
-    spotify.search({ type: "track", query: params }, function(err, data) {
-        if(!err){
-            var songInfo = data.tracks.items;
-            for (var i = 0; i < 5; i++) {
-                if (songInfo[i] != undefined) {
-                    var spotifyResults =
-                    "Artist: " + songInfo[i].artists[0].name + "\r\n" +
-                    "Song: " + songInfo[i].name + "\r\n" +
-                    "Album the song is from: " + songInfo[i].album.name + "\r\n" +
-                    "Preview Url: " + songInfo[i].preview_url + "\r\n" + 
-                    "------------------------------ " + i + " ------------------------------" + "\r\n";
-                    console.log(spotifyResults);
-                    log(spotifyResults); // calling log function
-                }
-            }
-        }	else {
-            console.log("Error :"+ err);
-            return;
-        }
-    });
-};
 
-// Do What It Says function, uses the reads and writes module to access the random.txt file and do what's written in it
-function doWhatItSays() {
-    fs.readFile("random.txt", "utf8", function(error, data){
-        if (!error) {
-            doWhatItSaysResults = data.split(",");
-            spotifyThisSong(doWhatItSaysResults[0], doWhatItSaysResults[1]);
-        } else {
-            console.log("Error occurred" + error);
+
+
+
+//SPOTIFY________________________________________________________
+
+
+
+
+
+
+
+//IMDB________________________________________________________
+
+function imdb() {
+
+    var request = require('request-promise');
+    var value = process.argv[3];
+
+    if (value == null)  {
+        let movie = "Mr. Nobody";
+        request('http://www.omdbapi.com/?t=' + movie + '&r=json&tomatoes=true&apikey=trilogy')
+        .then(response =>{
+            let data = JSON.parse(response);
+            console.log("======================================================================");
+            console.log("If you haven't watched Mr. Nobody,then you should: http://www.imdb.com/title/tt0485947/");
+            console.log("It's on Netflix!");
+            console.log("");
+            console.log("======================================================================");
+            console.log("The movie's name is: " + data.Title);
+            console.log("");
+            console.log("The movie was released in: " + data.Year);
+            console.log("");
+            console.log("The movie's rating is: " + data.imdbRating);
+            console.log("");
+            console.log("This movie was produced in the: " + data.Country);
+            console.log("");
+            console.log("The language for this movie is in: " + data.Language);
+            console.log("");
+            console.log("The movie's plot: " + data.Plot);
+            console.log("");
+            console.log("The movie's actors are: " + data.Actors);
+            console.log("");
+            console.log("The Rotten Tomato rating is: " + data.tomatoRating);  //for some reason, this doesn't seem to work???
+            console.log("");
+            
+        }) } 
+    else {
+        request('http://www.omdbapi.com/?t=' + value + '&r=json&tomatoes=true&apikey=trilogy')
+        .then(response =>{
+            let data = JSON.parse(response);
+            console.log("I found your movie!");
+            console.log("======================================================================");
+            console.log("The movie's name is: " + data.Title);
+            console.log("");
+            console.log("The movie was released in: " + data.Year);
+            console.log("");
+            console.log("The movie's rating is: " + data.imdbRating);
+            console.log("");
+            console.log("This movie was produced in the: " + data.Country);
+            console.log("");
+            console.log("The language for this movie is in: " + data.Language);
+            console.log("");
+            console.log("The movie's plot: " + data.Plot);
+            console.log("");
+            console.log("The movie's actors are: " + data.Actors);
+            console.log("");
+            console.log("The Rotten Tomato rating is: " + data.tomatoRating);  //for some reason, this doesn't seem to work???
+            console.log("");
+                
+            })
         }
-    });
-};
-// Do What It Says function, uses the reads and writes module to access the log.txt file and write everything that returns in terminal in the log.txt file
-function log(logResults) {
-  fs.appendFile("log.txt", logResults, (error) => {
-    if(error) {
-      throw error;
-    }
-  });
-};
+    };
+
+
+//do-what-it-says________________________________________________
