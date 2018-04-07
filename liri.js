@@ -13,7 +13,7 @@ switch (action) {
         imdb();
         break;
 
-    case 'do-what-it-says':
+    case 'do-what-it-says':  
         dwis();
         break;
 }
@@ -136,3 +136,4 @@ function imdb() {
 
 
 //do-what-it-says________________________________________________
+//uses Spotify so...
